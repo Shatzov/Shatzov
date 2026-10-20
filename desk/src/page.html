@@ -1099,7 +1099,7 @@ aside.r11p .r11f textarea{min-height:72px}
 aside.r11p .glance{grid-template-columns:minmax(120px,auto) 1fr}
 .r11msg{padding:0 16px 10px}
 /* r12: a person's mailbox events as one task */
-.r12mg .r12mgh{cursor:default}.r12mg .r12mgh:hover{background:none}
+.r12mg .r12mgh{cursor:default;box-sizing:border-box}.r12mg .r12mgh:hover{background:none}
 .r12mg .r12acts{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:0 16px 8px}.r12mg .r12acts .src{flex-basis:100%}
 .r12mg details.r12mgd{padding:0 16px 10px}.r12mg details.r12mgd>summary{cursor:pointer;color:var(--accent);font-size:14px;min-height:36px;display:flex;align-items:center}
 .r12mg details.r12mgd .tl{border:1px solid var(--line);border-radius:8px;overflow:hidden}.r12mg details.r12mgd .tl .trw:first-child .trow{border-top:0}
@@ -7616,12 +7616,24 @@ function logEvent(ev) {
 document.addEventListener('click', () => { st.lastClickAt = performance.now(); }, true); document.addEventListener('keydown', (e) => { if (e.key === 'Enter') st.lastClickAt = performance.now(); }, true);   // perf P6
 (async () => { try { RUN.db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { RUN.db = null; } logEvent({ kind: 'boot', db: !!RUN.db, snapshot_at: st.snapAt || '' }); })();
 let retried = false;
+// r12 preview builds (BUILD.preview, tools/build.mjs --mode preview): the workbook is read live, but no entry ever leaves the page.
+// Every save path goes through st.mcp.callTool('Google Drive', 'create_file', ...); here that call answers locally with a preview id
+// and keeps the entry in window.__previewSaves. The banner says so on every view.
+function previewMcp(mcp) { const saves = window.__previewSaves = [];
+  const bar = document.createElement('div'); bar.setAttribute('role', 'status'); bar.dataset.testid = 'preview-banner';
+  bar.style.cssText = 'position:sticky;top:0;z-index:20;background:var(--warn-soft);color:var(--warn);border-bottom:1px solid var(--warn);padding:6px 16px;font-size:14px;font-weight:600';
+  const say = () => { bar.textContent = 'PREVIEW of the next Desk version: it reads your live workbook, but nothing you save here is written to Google Drive or the workbook' + (saves.length ? ' (' + saves.length + ' entr' + (saves.length === 1 ? 'y' : 'ies') + ' kept in this page only)' : '') + '. Keep using the regular Desk for real work.'; };
+  say(); document.body.insertBefore(bar, document.body.firstChild);
+  const callTool = async (server, tool, input, opts) => {
+    if (tool === 'create_file') { saves.push({ at: new Date().toISOString(), input }); say(); const id = 'preview-' + saves.length; return { payload: { id, parents: [input && input.parentId] }, content: [{ type: 'text', text: JSON.stringify({ id }) }] }; }
+    return mcp.callTool(server, tool, input, opts); };
+  return new Proxy(mcp, { get: (t, k) => { if (k === 'callTool') return callTool; const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } }); }
 async function startLive() {
   let mcp = null;
   try { mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null; } catch (e) { mcp = null; }
   logEvent({ kind: 'mcp', available: !!mcp });
   if (!mcp) { st.live = 'none'; st.liveMsg = 'This view cannot read the workbook (no connector access here). Open the Desk in claude.ai.'; render(); return; }
-  st.mcp = mcp; st.live = 'reading'; st.loading = true; render();
+  st.mcp = BUILD.preview ? previewMcp(mcp) : mcp; st.live = 'reading'; st.loading = true; render();
   if (!st.rt) st.rt = { click: performance.now(), boot: true };   // perf P6: boot_ms is the time from opening the page to this request
   st.unwatch = mcp.watchTool(SOURCE.server, SOURCE.tool, SOURCE.input, (ev) => {
     if (ev.type === 'data') takeResult(ev.result).catch(err => { st.loading = false; st.live = 'bad'; st.liveMsg = 'The export could not be read: ' + err.message; render(); });
@@ -9164,7 +9176,7 @@ const holdTxt = (x) => x.hold ? plainWhy(x.hold.text) : '';
 function nowRow(m, x) { if (x.kind === 'mailgroup') return r12MailGroupRow(m, x); if (x._exec && x._exec.prefPassed) return stillRow(m, x); const W = whenCols(m, x); const other = x.otherConversation && !(x.hold && /active conversation/.test(x.hold.text)) ? 'Active conversation with ' + x.otherConversation.name + ' at this firm (' + x.otherConversation.text + ')' : '';
   return trow(x, { w1: W.w1, w2: W.w2, chip: x.overdue ? ['attn', 'sq', 'Overdue'] : ['due', 'dot', 'Due now'], hold: [holdTxt(x), other].filter(Boolean).join(' · ') }); }
 function fixRow(x) { if (x.kind === 'rejected_script') return trow(x, { cls: 'fix', kind: 'Approve', what: x.what, hold: x.why, w2: 'Call review batch', chip: ['attn', 'sq', 'Your approval'], act: 'Review', batchrow: true });
-  if (x.kind === 'rejected' && r12LateWithdraw(x)) return trow(x, { cls: 'fix', kind: 'Note', what: x.what, hold: 'Your withdrawal came after this confirmation had already taken effect, so it still stands. Nothing here can be fixed by saving again. To change what it started, open the person and stop their automatic sending or set a pause; otherwise dismiss this note.', w2: 'Already in effect', chip: ['attn', 'sq', 'Still in effect'], act: 'Open' }).replace(/<\/li>$/, r11FixActs(x) + '</li>');
+  if (x.kind === 'rejected' && r12LateWithdraw(x)) return trow(x, { cls: 'fix', kind: 'Note', what: x.what, hold: 'Your withdrawal came after it took effect, so it stands. To change it, stop their automatic sending or set a pause; or dismiss this note.', w2: 'Already in effect', chip: ['attn', 'sq', 'Still in effect'], act: 'Open' }).replace(/<\/li>$/, r11FixActs(x) + '</li>');
   return x.kind === 'rejected' ? trow(x, { cls: 'fix', kind: 'Fix', what: x.what, hold: 'Not recorded. The importer\'s reason: ' + x.why, w2: 'Fix and save again', chip: ['stop', 'tri', 'Not recorded'], act: 'Fix', fixrow: true }).replace(/<\/li>$/, r11FixActs(x) + '</li>')
   : trow(x, { cls: 'fix', w1: x.localLabel || '', w2: x.israelLabel || '', chip: ['stop', 'tri', 'Needs a fix'], hold: holdTxt(x), act: 'Fix' }); }
 function savedRow(x) { return trow(x, { cls: 'saved', what: x.what, chip: ['attn', 'half', 'Saved · waiting for import'], extra: saveTrack(x.saved) }).replace('<span class="chip attn">', '<span class="chip attn" data-testid="wl-saved">'); }
@@ -13274,7 +13286,7 @@ function r12CallbackAge(m, r, x, cbTry, holds) { if (!r || r.kind !== 'callback'
   if (!cbTry && !(agreed && agreed < now && D.localYmd(agreed, tz) < today)) return null;   // not tried and not past the day they gave: unchanged
   const fromYmd = cbTry ? D.localYmd(new Date(cbTry.row.ts), tz) : D.localYmd(agreed, tz); const age = D.workdaysLate(fromYmd, today);
   const N = D.prefNext(m.windows, tz, now); const nextTxt = !N ? 'Call in their next preferred hour' : N.open ? 'In their preferred hour now: until ' + D.localHm(N.end, tz) + ' ' + D.tzShort(N.end, tz) + ' (' + D.localHm(N.end, IL_TZ) + ' Israel)' : 'Next preferred hour ' + N.localLabel + ' (' + N.israelLabel + ')';
-  if (age >= 5) { const hs = cbHeldSteps(r.f, r.ck); holds.push(nUnit(age, 'working day', 'working days') + (cbTry ? ' since your last try' : ' since the time they gave') + (hs.length ? ': if they are not expecting your call any more, closing the callback lets ' + hs.join(', ') + ' continue' : '')); }
+  if (age >= 5) { const hs = cbHeldSteps(r.f, r.ck); if (hs.length) holds.push('Not expecting your call any more? Closing the callback releases the held steps'); }
   const chip = age === 0 ? ['due', 'ring', cbTry ? 'Tried today, still open' : 'Due now'] : ['attn', 'sq', 'Overdue · ' + nUnit(age, 'working day', 'working days') + (cbTry ? ' since your try' : '')];
   return { chip, age, w1: nextTxt, w2: (agreed ? 'They asked for ' + D.dayLabel(agreed, tz) + ', ' + D.localHm(agreed, tz) + ' ' + D.tzShort(agreed, tz) : 'Agreed callback') + (cbTry ? ' · tried ' + D.dayLabel(new Date(cbTry.row.ts), tz) : '') }; }
 function r12MidOf(x) { return String(x.message_id || (/^review:/.test(String(x.id || '')) ? String(x.id).split(':').pop() : '')); }
