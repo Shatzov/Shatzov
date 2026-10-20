@@ -1,0 +1,7 @@
+# Business data never enters this (public) repository.
+private/
+dist/
+harness-out/
+node_modules
+*.xlsx
+desk/index.html
