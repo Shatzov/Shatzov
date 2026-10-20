@@ -26,4 +26,5 @@ done
 MODE=ended node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture-ended.xlsx --out "$OUT/edge-ended" --now 2026-10-20T20:40:00Z --script tools/steps/r12-edge.mjs | grep -v "harness done"
 echo "5. preview never writes"; node tools/harness.mjs --html dist/desk-preview.html --xlsx private/fixture.xlsx --out "$OUT/pv" --now 2026-10-20T20:40:00Z --script tools/steps/preview.mjs
 echo "6. phone width"; OUT_DIR="$OUT/vis" node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/vis" --width 390 --now 2026-10-20T20:40:00Z --script tools/steps/visual.mjs
+echo "7. OR-05 capture tests"; node n8n/or05-capture-1.10.1/test.mjs | tail -1
 echo "all checks passed ($OUT)"
