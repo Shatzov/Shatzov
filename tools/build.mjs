@@ -23,6 +23,7 @@ let html = page.replace(/^@@PRIVATE (p[0-9a-f]{10})@@$/gm, (m, k) => {
 if (missing.length) { console.error('build: no value for markers', missing.join(', ')); process.exit(1); }
 if (mode === 'preview') {
   html = html.replace(/^const BUILD = \{/m, 'const BUILD = {"preview": true, ');
+  html = html.replace('<title>Blocks Partner Desk</title>', '<title>Partner Desk r12 Preview</title>');
 }
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, html);
