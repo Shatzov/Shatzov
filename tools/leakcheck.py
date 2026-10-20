@@ -16,7 +16,9 @@ for v in pd.concat([c.domain,co.company_key]).dropna():
 phones=set(re.sub(r'\D','',v)[-10:] for v in pd.concat([c.mobile_direct,c.hq_phone,co.hq_phone]).dropna() if len(re.sub(r'\D','',v))>=10)
 bad=False
 for f in sys.argv[2:]:
-    s=open(f,encoding='utf8',errors='ignore').read(); low=s.lower(); digits=re.sub(r'\D','',s)
+    if f.endswith('.xlsx'): s='\n'.join(d.fillna('').to_csv(index=False) for d in pd.read_excel(f,sheet_name=None,dtype=str).values())   # cell text, not the zip
+    else: s=open(f,encoding='utf8',errors='ignore').read()
+    low=s.lower(); digits=re.sub(r'\D','',s)
     hits=[t for t in terms if t.lower() in low]; ph=[p for p in phones if p in digits]
     if hits or ph:
         bad=True; print('LEAK', f, 'terms', len(hits), 'phones', len(ph))
