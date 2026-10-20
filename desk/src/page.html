@@ -11748,8 +11748,9 @@ function convRowHtml(m, r) {
   const holds = []; if (r.kind === 'callback') { const hs = cbHeldSteps(f, r.ck); if (hs.length) holds.push('Held while this callback is open: ' + hs.join(', ')); }
   if (r.liDue) holds.push('An acceptance stops nothing: the other steps continue. Log a LinkedIn reply when it comes; the next touch closes this check.');
   for (const o of pausedOthers(f, r.ck)) holds.push(o.name + ' paused' + (o.until ? ' until ' + o.until : '') + (o.placeholder ? ' (placeholder date, not an agreed follow-up)' : '') + ' pending this outcome');
-  const chip = cbTry ? ['due', 'ring', 'Tried, still open'] : r.late ? ['stop', 'tri', 'Late'] : x && x.overdue ? ['attn', 'sq', 'Overdue'] : r.due ? ['due', 'dot', 'Due now'] : ['', 'ring', 'Later'];
-  const w1 = x && x.localLabel ? x.localLabel : r.liDue ? 'from ' + D.plainDay(r.liDue) : x && x.due ? 'due ' + D.plainDay(String(x.due).slice(0, 10)) : ''; const w2 = since;
+  const cbAge = r12CallbackAge(m, r, x, cbTry, holds);   // r12: how long the callback has waited, and the next preferred hour
+  const chip = cbAge ? cbAge.chip : cbTry ? ['due', 'ring', 'Tried, still open'] : r.late ? ['stop', 'tri', 'Late'] : x && x.overdue ? ['attn', 'sq', 'Overdue'] : r.due ? ['due', 'dot', 'Due now'] : ['', 'ring', 'Later'];
+  const w1 = cbAge ? cbAge.w1 : x && x.localLabel ? x.localLabel : r.liDue ? 'from ' + D.plainDay(r.liDue) : x && x.due ? 'due ' + D.plainDay(String(x.due).slice(0, 10)) : ''; const w2 = cbAge ? cbAge.w2 : since;
   const attrs = x ? `data-wl="${esc(x.id)}"` : `data-seq="${esc(r.ck)}" data-key="${esc(f.key)}"`;
   return `<li class="trw conv${r.late ? ' late' : ''}" data-testid="cv-${esc(r.k)}" data-kind="${esc(r.kind)}" data-late="${r.late ? 1 : 0}"><button class="trow" ${attrs}><span class="rk">${esc(r.word)}</span><span class="rm"><b>${esc(name)}</b> · ${esc(f.firm)}<span class="rs" data-testid="cv-signal">${esc(sig)}</span><span class="rs" data-testid="cv-next"><b>Next:</b> ${esc(next)}</span>${holds.map(h => `<span class="rh" data-testid="cv-hold">${esc(h)}</span>`).join('')}</span><span class="rw">${w1 ? '<b>' + esc(w1) + '</b>' : ''}${w2 ? '<span>' + esc(w2) + '</span>' : ''}</span>${chipH(chip[0], chip[1], chip[2])}<span class="ra">Open ›</span></button>${x ? rowActs(x) : ''}</li>`;
 }
@@ -13260,6 +13261,19 @@ document.addEventListener('click', (e) => { const t = e.target;
 //    confirmation took effect says so in plain words instead of asking for a fix that cannot succeed.
 // =====================================================================================================================================
 const R12 = { busy: false };
+// 3. An open callback says how long it has waited (since the time they gave, or since your last try) and when their next preferred
+//    calling hour is (10:00 to 11:00 their time, the rule calls use). Nothing is closed or moved automatically: the callback stays open
+//    and visible until you call, move or close it. After five working days it also says that closing it lets the held steps continue.
+function r12CallbackAge(m, r, x, cbTry, holds) { if (!r || r.kind !== 'callback' || !r.S) return null; const tz = r.S.tz || 'America/New_York';
+  const now = nowD(); const today = D.localYmd(now, tz);
+  const agreedIso = x && x.when ? x.when : r.S.row && r.S.row.next_action_date ? String(r.S.row.next_action_date) : '';
+  const agreed = agreedIso && !isNaN(Date.parse(agreedIso)) ? new Date(agreedIso) : null;
+  if (!cbTry && !(agreed && agreed < now && D.localYmd(agreed, tz) < today)) return null;   // not tried and not past the day they gave: unchanged
+  const fromYmd = cbTry ? D.localYmd(new Date(cbTry.row.ts), tz) : D.localYmd(agreed, tz); const age = D.workdaysLate(fromYmd, today);
+  const N = D.prefNext(m.windows, tz, now); const nextTxt = !N ? 'Call in their next preferred hour' : N.open ? 'In their preferred hour now: until ' + D.localHm(N.end, tz) + ' ' + D.tzShort(N.end, tz) + ' (' + D.localHm(N.end, IL_TZ) + ' Israel)' : 'Next preferred hour ' + N.localLabel + ' (' + N.israelLabel + ')';
+  if (age >= 5) { const hs = cbHeldSteps(r.f, r.ck); holds.push(nUnit(age, 'working day', 'working days') + (cbTry ? ' since your last try' : ' since the time they gave') + (hs.length ? ': if they are not expecting your call any more, closing the callback lets ' + hs.join(', ') + ' continue' : '')); }
+  const chip = age === 0 ? ['due', 'ring', cbTry ? 'Tried today, still open' : 'Due now'] : ['attn', 'sq', 'Overdue · ' + nUnit(age, 'working day', 'working days') + (cbTry ? ' since your try' : '')];
+  return { chip, age, w1: nextTxt, w2: (agreed ? 'They asked for ' + D.dayLabel(agreed, tz) + ', ' + D.localHm(agreed, tz) + ' ' + D.tzShort(agreed, tz) : 'Agreed callback') + (cbTry ? ' · tried ' + D.dayLabel(new Date(cbTry.row.ts), tz) : '') }; }
 function r12MidOf(x) { return String(x.message_id || (/^review:/.test(String(x.id || '')) ? String(x.id).split(':').pop() : '')); }
 function r12IsMail(x) { return !!x && x.kind === 'review' && !x.oooReview && !!r12MidOf(x); }
 // What the account is at the moment: the latest meeting that is not cancelled, else the latest logged conversation.
