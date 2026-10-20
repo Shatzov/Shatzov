@@ -1098,6 +1098,12 @@ aside.r11p .obtns .ob[disabled]{opacity:.5;cursor:not-allowed}
 aside.r11p .r11f textarea{min-height:72px}
 aside.r11p .glance{grid-template-columns:minmax(120px,auto) 1fr}
 .r11msg{padding:0 16px 10px}
+/* r12: a person's mailbox events as one task */
+.r12mg .r12mgh{cursor:default}.r12mg .r12mgh:hover{background:none}
+.r12mg .r12acts{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:0 16px 8px}.r12mg .r12acts .src{flex-basis:100%}
+.r12mg details.r12mgd{padding:0 16px 10px}.r12mg details.r12mgd>summary{cursor:pointer;color:var(--accent);font-size:14px;min-height:36px;display:flex;align-items:center}
+.r12mg details.r12mgd .tl{border:1px solid var(--line);border-radius:8px;overflow:hidden}.r12mg details.r12mgd .tl .trw:first-child .trow{border-top:0}
+@media (max-width:760px){.r12mg .r12acts,.r12mg details.r12mgd{padding-inline:12px}.r12mg .r12acts button{width:100%;min-height:44px}}
 details.tg[data-sec^="r11"]>summary .hs{font-weight:400}
 @media (max-width:760px){.r11strip .r11jump{flex:1 1 46%;justify-content:center}.r11in{padding:0 8px 10px}}
 .r11logs{color:var(--muted)}details.lst>summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
@@ -8956,7 +8962,7 @@ function rejLine(x) { return `<li class="wl" data-testid="wl-${esc(x.id)}"><butt
 const UNRESOLVED_KEYS = new Set(['not_checked', 'check_pending', 'verdict_unbound', 'switchboard']);
 function todayItems(m) {
   const out = [];
-  for (const r of rejectedEntries(m)) out.push({ id: 'rejected:' + r.event_id, kind: 'rejected', event_id: r.event_id, key: r.company_key, firm: firmName(r.company_key), person: (r.contact_key || '').split(' | ')[1] || '', contact_key: r.contact_key, what: actLabel(r.action) + ' (' + when(r.imported_at) + ')', why: r.reason, group: 'fix' });
+  for (const r of rejectedEntries(m)) out.push({ id: 'rejected:' + r.event_id, kind: 'rejected', event_id: r.event_id, key: r.company_key, firm: firmName(r.company_key), person: (r.contact_key || '').split(' | ')[1] || '', contact_key: r.contact_key, what: actLabel(r.action) + ' (' + when(r.imported_at) + ')', why: r.reason, action: r.action, group: 'fix' });
   { const seenCk = new Set();   // Desk 44
     for (const o of settledRejections(m)) { if (o.S.k !== 'script' || seenCk.has(o.r.contact_key)) continue; seenCk.add(o.r.contact_key);
       out.push({ id: 'rejscript:' + o.r.event_id, kind: 'rejected_script', event_id: o.r.event_id, key: o.r.company_key, firm: firmName(o.r.company_key), person: (o.r.contact_key || '').split(' | ')[1] || '', contact_key: o.r.contact_key, what: 'Approve the call script' + (o.S.todo.length > 1 ? 's' : '') + ': ' + o.S.todo.map(t => t.step).join(' and '), why: o.S.text + ' Earlier refusal (' + when(o.r.imported_at) + ') kept in the log: ' + o.r.reason, group: 'fix' }); } }
@@ -9155,9 +9161,10 @@ function handOf(e) { const q = e && e.job_key ? (st.tabs.Queue || []).find(r => 
   if (e.action === 'email_sent' && !(/^sent$/i.test(String(q.status || '')) || String(q.sent_at || '') || String(q.provider_message_id || ''))) return 'send';
   if (e.action === 'attempt_resolve' && /^hand:/i.test(String((e.attempt && e.attempt.send_attempt_id) || q.send_attempt_id || ''))) return 'resolve'; return ''; }
 const holdTxt = (x) => x.hold ? plainWhy(x.hold.text) : '';
-function nowRow(m, x) { if (x._exec && x._exec.prefPassed) return stillRow(m, x); const W = whenCols(m, x); const other = x.otherConversation && !(x.hold && /active conversation/.test(x.hold.text)) ? 'Active conversation with ' + x.otherConversation.name + ' at this firm (' + x.otherConversation.text + ')' : '';
+function nowRow(m, x) { if (x.kind === 'mailgroup') return r12MailGroupRow(m, x); if (x._exec && x._exec.prefPassed) return stillRow(m, x); const W = whenCols(m, x); const other = x.otherConversation && !(x.hold && /active conversation/.test(x.hold.text)) ? 'Active conversation with ' + x.otherConversation.name + ' at this firm (' + x.otherConversation.text + ')' : '';
   return trow(x, { w1: W.w1, w2: W.w2, chip: x.overdue ? ['attn', 'sq', 'Overdue'] : ['due', 'dot', 'Due now'], hold: [holdTxt(x), other].filter(Boolean).join(' · ') }); }
 function fixRow(x) { if (x.kind === 'rejected_script') return trow(x, { cls: 'fix', kind: 'Approve', what: x.what, hold: x.why, w2: 'Call review batch', chip: ['attn', 'sq', 'Your approval'], act: 'Review', batchrow: true });
+  if (x.kind === 'rejected' && r12LateWithdraw(x)) return trow(x, { cls: 'fix', kind: 'Note', what: x.what, hold: 'Your withdrawal came after this confirmation had already taken effect, so it still stands. Nothing here can be fixed by saving again. To change what it started, open the person and stop their automatic sending or set a pause; otherwise dismiss this note.', w2: 'Already in effect', chip: ['attn', 'sq', 'Still in effect'], act: 'Open' }).replace(/<\/li>$/, r11FixActs(x) + '</li>');
   return x.kind === 'rejected' ? trow(x, { cls: 'fix', kind: 'Fix', what: x.what, hold: 'Not recorded. The importer\'s reason: ' + x.why, w2: 'Fix and save again', chip: ['stop', 'tri', 'Not recorded'], act: 'Fix', fixrow: true }).replace(/<\/li>$/, r11FixActs(x) + '</li>')
   : trow(x, { cls: 'fix', w1: x.localLabel || '', w2: x.israelLabel || '', chip: ['stop', 'tri', 'Needs a fix'], hold: holdTxt(x), act: 'Fix' }); }
 function savedRow(x) { return trow(x, { cls: 'saved', what: x.what, chip: ['attn', 'half', 'Saved · waiting for import'], extra: saveTrack(x.saved) }).replace('<span class="chip attn">', '<span class="chip attn" data-testid="wl-saved">'); }
@@ -9793,6 +9800,7 @@ function restrictionLegendHtml(m) { const T = st.tabs || {}; const S = (T.Suppre
     <li><b>Explicit opt-out</b> (${opt} on file): the person or the company asked not to be contacted. Every channel stops; nothing releases it.</li></ul></details>`; }
 function renderToday(m) {
   const P0 = placeItems(m); st.placed = P0; const CV = convModel(m, P0); const P = Object.assign({}, P0); for (const g of ['now', 'still', 'waitwin', 'coming']) P[g] = (P0[g] || []).filter(x => !CV.taken.has(x.id));   // Desk 49: conversation items have one place, the Conversations lane
+  P.now = r12GroupMail(m, P.now);   // r12: a person's mailbox events are one task
   const G = heldModel(m, P); const PD = phoneDecisions(G);
   const nOpen = P.now.length + P.fix.length; const sendTxt = sendState(m).short; const nStill = P.still.length + P.waitwin.length;
   const nIl = new Intl.DateTimeFormat('en-GB', { timeZone: IL_TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(m.now));
@@ -12982,6 +12990,7 @@ function r11Dismiss(id) { if (!id || R11.dismissed[id]) return; R11.dismissed[id
 const R11_INEFFECT = /\bis already (sent|authorized|approved|applied|recorded|done)\b|\bare already (sent|authorized)\b|already authorized for this step|already on record\b/i;
 function r11Settled(r) { if (!r || !r.event_id) return null;
   if (R11.dismissed[r.event_id]) return { k: 'dismissed', text: 'dismissed by you ' + when(R11.dismissed[r.event_id]) };
+  { const w = r12Settled(r); if (w) return w; }   // r12
   let why = String(r.reason || ''); const i = why.indexOf('not applied:'); if (i >= 0) why = why.slice(i + 12);
   const parts = why.split(' | ').map(p => p.replace(/^\s*[a-z_]+ e[a-z0-9]+:\s*/, '')).join('; ').split(/;\s+/).map(p => p.trim()).filter(Boolean);
   if (parts.length && parts.every(p => R11_INEFFECT.test(p))) return { k: 'in_effect', text: 'no action needed: what this entry asked for was already in effect' };
@@ -13240,6 +13249,73 @@ document.addEventListener('click', (e) => { const t = e.target;
     if (mt.dataset.r11mode === 'crm') { const i = R11.list.find(x => x.id === mt.dataset.r11mt); if (i) { openLog({ action: 'meeting_crm_logged', company_key: i.key, contact_key: i.ck, meeting_id: i.id }); return; } }
     r11OpenMeeting(mt.dataset.r11mt, mt.dataset.r11mode || ''); return; }
 }, true);
+
+// =====================================================================================================================================
+// Desk r12 (20 Oct 2026). Display and forms only: the model, the gate rules, holds, approvals and the desk log format are unchanged.
+// 1. Mailbox events are grouped per person in Do now: one row says what came in and went out, what the account is (a meeting, a
+//    conversation), and offers one action for the emails you wrote by hand ("conversation emails, not sequence steps"). That action
+//    saves exactly the entries the per-message button saves (mail_review, conversation_sent), one file each, the same event id on a
+//    retry. Every message stays listed under the group with its own actions (an email that really was a sequence step, a reply).
+// 2. Importer refusals caused by your own withdrawal of a confirmation settle themselves; a withdrawal that came after the
+//    confirmation took effect says so in plain words instead of asking for a fix that cannot succeed.
+// =====================================================================================================================================
+const R12 = { busy: false };
+function r12MidOf(x) { return String(x.message_id || (/^review:/.test(String(x.id || '')) ? String(x.id).split(':').pop() : '')); }
+function r12IsMail(x) { return !!x && x.kind === 'review' && !x.oooReview && !!r12MidOf(x); }
+// What the account is at the moment: the latest meeting that is not cancelled, else the latest logged conversation.
+function r12AccountContext(key, ck) { const T = st.tabs || {}; const S = (v) => String(v == null ? '' : v).trim();
+  const mt = (T.Meetings || []).filter(r => S(r.company_key) === key && S(r.meeting_id) !== 'TEMPLATE' && !/cancel/i.test(S(r.outcome_branch))).sort((a, b) => S(b.updated_at || b.booked_at).localeCompare(S(a.updated_at || a.booked_at)))[0];
+  if (mt) { const held = /^(yes|true)$/i.test(S(mt.held)) || /^held/i.test(S(mt.outcome_branch)); const at = S(mt.scheduled_at_israel || mt.scheduled_at_local || mt.booked_at).slice(0, 10);
+    return { kind: 'meeting', text: (held ? 'Meeting held' : 'Meeting booked') + (at && /^\d{4}-\d{2}-\d{2}$/.test(at) ? ' (' + D.plainDay(at) + ')' : '') + ' with this account' }; }
+  const conv = (T.Activity || []).filter(a => S(a.company_key) === key && (!ck || !S(a.contact_key) || S(a.contact_key) === ck) && /^(replied_(positive|neutral)|connected_(interested|info_requested|redirect)|callback_requested|meeting_(booked|held|acceptance_confirmed))$/i.test(S(a.outcome))).sort((a, b) => S(b.ts).localeCompare(S(a.ts)))[0];
+  if (conv) return { kind: 'conversation', text: 'In conversation since ' + D.plainDay(S(conv.ts).slice(0, 10)) + ' (' + S(conv.outcome).replace(/_/g, ' ') + ')' };
+  return null; }
+// The entry the per-message "conversation email" button saves (r11ConvSave), for one mailbox event; null when it does not apply.
+function r12ConvEntry(x) { const mid = r12MidOf(x); const ev = r11MailEv(mid); if (!ev || !/^review$/i.test(String(ev.status || '')) || !/^out/i.test(String(ev.direction || ''))) return null;
+  if (PEND.some(p => p.entry && p.entry.mail && p.entry.mail.message_id === mid && pendState(p, st.model).k === 'waiting')) return null;
+  return LG.buildEntry({ event_id: (R11.convId || (R11.convId = {}))[mid] || (R11.convId[mid] = LG.newEventId()), action: 'mail_review', company_key: x.key, contact_key: x.contact_key || '', channel: 'email', outcome: 'conversation_sent', ts: new Date(String(ev.date || '')).toISOString(), notes: '', message_id: mid, thread_id: String(ev.thread_id || '') }); }
+// Do now: two or more mailbox events of one person (or, for senders who are not tracked contacts, of one firm) become one row.
+function r12GroupMail(m, list) { const by = new Map(); for (const x of list) if (r12IsMail(x)) { const g = x.key + '|' + (x.contact_key || ''); if (!by.has(g)) by.set(g, []); by.get(g).push(x); }
+  const out = [], done = new Set();
+  for (const x of list) { if (!r12IsMail(x)) { out.push(x); continue; } const g = x.key + '|' + (x.contact_key || ''); const L = by.get(g);
+    if (L.length < 2) { out.push(x); continue; } if (done.has(g)) continue; done.add(g);
+    out.push({ id: 'mailgrp:' + g, kind: 'mailgroup', key: x.key, firm: x.firm, person: x.person, contact_key: x.contact_key || '', members: L, due: L.map(y => y.due).filter(Boolean).sort()[0] || x.due, overdue: L.some(y => y.overdue) }); }
+  return out; }
+function r12MailGroupRow(m, g) { const ev = (x) => r11MailEv(r12MidOf(x)) || {};
+  const outs = g.members.filter(x => /^out/i.test(String(ev(x).direction || ''))), ins = g.members.length - outs.length;
+  const conv = g.members.map(r12ConvEntry).filter(Boolean); const waiting = outs.length - conv.length;
+  const ctx = r12AccountContext(g.key, g.contact_key); const holds = outs.some(x => /manual sent/i.test(String(x.what || '')));
+  const dates = g.members.map(x => String(ev(x).date || '').slice(0, 10)).filter(Boolean).sort();
+  const who = g.person || ('people at ' + g.firm);
+  const what = [outs.length ? nUnit(outs.length, 'email', 'emails') + ' you wrote by hand' : '', ins ? nUnit(ins, 'email', 'emails') + ' from ' + (g.person ? firstName(g.person) : 'them') + ' or a colleague, outside any tracked thread' : ''].filter(Boolean).join(' · ');
+  const hold = [ctx ? ctx.text : '', holds ? 'Automatic emails to ' + (g.person ? firstName(g.person) : 'them') + ' wait until the emails you wrote are resolved' : ''].filter(Boolean).join(' · ');
+  const span = dates.length ? (dates[0] === dates[dates.length - 1] ? D.plainDay(dates[0]) : D.plainDay(dates[0]) + ' to ' + D.plainDay(dates[dates.length - 1])) : '';
+  const allBtn = r11Imp37() && conv.length ? `<button class="ghost" data-r12convall="${esc(g.id)}" data-testid="wl-mailgrp-conv-all">${conv.length === 1 ? 'The email I wrote is a conversation email (not a sequence step)' : 'All ' + conv.length + ' emails I wrote are conversation emails (not sequence steps)'}</button>` : '';
+  const savedTxt = waiting > 0 ? `<span class="src" data-testid="wl-mailgrp-saved">${nUnit(waiting, 'email', 'emails')} saved as conversation emails, waiting for the importer</span>` : '';
+  const tip = outs.length ? `<span class="src">If one of them was really a sequence step (Follow-up 1, 2 or 3), open it below and choose the step instead. Emails from them are resolved one by one below: a reply stops the sequence.</span>` : '';
+  return `<li class="trw r12mg" data-testid="wl-mailgrp-${esc(g.key)}"><div class="trow r12mgh"><span class="rk">Mailbox</span><span class="rm"><b>${esc(who)}</b>${g.person ? ' · ' + esc(g.firm) : ''}<span class="rs">${esc(nUnit(g.members.length, 'mailbox event', 'mailbox events'))} to resolve: ${esc(what)}</span>${hold ? `<span class="rh" title="${esc(hold)}">${esc(hold)}</span>` : ''}</span><span class="rw">${span ? '<b>' + esc(span) + '</b>' : ''}</span>${chipH(g.overdue ? 'attn' : 'due', g.overdue ? 'sq' : 'dot', g.overdue ? 'Overdue' : 'Due now')}<span class="ra"></span></div>
+    <div class="rowacts r12acts">${allBtn}${savedTxt}${tip}<div class="r11msg" data-testid="wl-mailgrp-msg"></div></div>
+    <details class="r12mgd" data-sec="mailgrp-${esc(g.id)}"${secOpen('mailgrp-' + g.id, false) ? ' open' : ''}><summary>Show the ${esc(nUnit(g.members.length, 'message', 'messages'))} one by one</summary><ul class="tl" data-group="mailgrp">${g.members.map(x => nowRow(m, x)).join('')}</ul></details></li>`; }
+async function r12ConvAll(btn) { if (R12.busy || R11.busy) return; const g = (st.nx && st.nx.P && st.nx.P.now || []).find(x => x.id === btn.dataset.r12convall); if (!g) return;
+  const li = btn.closest('li'); const box = li && li.querySelector('[data-testid="wl-mailgrp-msg"]');
+  const list = g.members.map(r12ConvEntry).filter(Boolean); if (!list.length) return;
+  const ctx = LG.buildCtx(st.tabs, new Date()); const bad = [];
+  for (const e of list) { let errs = []; try { errs = LG.checkEntry(e, ctx); } catch (er) { errs = [String(er && er.message || er)]; } if (errs.length) bad.push(errs.join('; ')); }
+  if (bad.length) { if (box) box.innerHTML = `<div class="errs" data-testid="wl-mailgrp-err">Nothing was saved: ${esc(bad.join(' | '))}</div>`; return; }
+  R12.busy = true; let n = 0; btn.disabled = true;
+  try { for (const e of list) { btn.textContent = 'Saving ' + (n + 1) + ' of ' + list.length + '…';
+      const ok = await r11Save(e, 'review:' + g.key + ':' + e.mail.message_id, { errEl: box }); if (!ok) { btn.disabled = false; btn.textContent = 'Save the remaining ' + (list.length - n) + ' again (same entries)'; return; } n++; }
+    logEvent({ kind: 'mailgroup_saved', company_key: g.key, entries: n });
+  } finally { R12.busy = false; }
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); try { renderLogStatus(st.model); renderToday(st.model); } catch (er) {} }
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-r12convall]'); if (b && !b.disabled) { e.preventDefault(); e.stopPropagation(); r12ConvAll(b); } }, true);
+// A refusal whose only reason is your own withdrawal of the confirmation it belonged to is settled: nothing of it was applied, as asked.
+const R12_WITHDRAWN = /\bcompany group \S+ was withdrawn\b.*nothing of it was applied/i;
+const R12_LATE_WITHDRAW = /\bcompany group \S+ was already applied; stop or change it with the usual Desk actions/i;
+function r12Settled(r) { if (!r) return null; const why = String(r.reason || '');
+  if (R12_WITHDRAWN.test(why) && String(r.action || '') !== 'group_withdraw') return { k: 'withdrawn', text: 'no action needed: you withdrew this confirmation, so none of it was applied, as you asked' };
+  return null; }
+function r12LateWithdraw(r) { return !!r && String(r.action || '') === 'group_withdraw' && R12_LATE_WITHDRAW.test(String(r.reason || r.why || '')); }   // a Diagnostics record (reason) or a Do now row (why)
 
 fromSnapshot(); if (!BUILD.demo) startLive(); else { st.live = 'ok'; renderClocks(); }
 // 1.8.3 TEST preview with several moments of one journey: switching replaces the demo workbook and clock, nothing else
