@@ -25,24 +25,35 @@ Partner Desk (claude.ai page) ── reads the workbook as an .xlsx export throu
 - Approvals, opt-outs, suppressions, do-not-call holds and sending limits live in the workbook and the workflows. Nothing here
   removes or weakens any of them.
 
-## What changed in this branch (Desk r12)
+## Status (20 Oct 2026)
+
+- **Desk r12: deployed** to the Partner Desk artifact as version `1792536216-4c87` (read back byte-identical to the tested
+  build; stored permissions and runtime unchanged). Rollback: republish the original (version `1792337736-d237`, kept in the
+  private backups) or restore it from the artifact's history.
+- **OR-05 capture 1.10.1: verified, not installed.** The n8n tools accept the node code only inline; writing the 152 KB code
+  through them was stopped, so it is installed by pasting `OR-05.Capture.1.10.1.js` into the Capture node (see
+  `n8n/or05-capture-1.10.1/INSTALL.md`). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
+
+## What changed in the Desk (r12)
 
 Found on the live data of 20 Oct 2026; each change has a test.
 
-1. **One task per person for mailbox events.** "Do now" had 35 tasks; 24 were single mailbox events from six accounts already in
-   a meeting or conversation (your own hand-written emails and their answers). They are now one row per person, with the account's
-   situation, and one button that records the emails you wrote as conversation emails. Every message stays listed under the row.
-   On the same data, Do now goes from 35 to 18 tasks.
-2. **Refusals you caused are not "fix" tasks.** Entries refused only because you withdrew their confirmation are settled. A
-   withdrawal that came too late is a plain note (it stands, how to change it), not "Fix and save again".
-3. **Callbacks say how overdue they are.** An open callback shows the working days since your last try and their next
-   10:00 to 11:00 calling hour in their time and in Israel time. Nothing is closed or moved for you.
-4. **No false "calendar late" alarm** in the evening or at the weekend: the Desk now uses the heartbeat's own verdict and the
-   calendar check's real schedule.
-5. **Preview builds** read the live workbook but cannot save anything.
+1. **One task per person for mailbox events.** Single mailbox events from accounts already in a meeting or conversation are one
+   row per person, with the account's latest state (a later cancellation, decline or deferral wins), and one button that records
+   the hand-written emails as conversation emails (only the outgoing ones; incoming ones stay open). Every message stays listed.
+2. **Every open mailbox event is reachable.** An event matched to no firm (a bounce for an untracked address) has its own row.
+3. **Refusals you caused are not "fix" tasks.** Entries refused because you withdrew their confirmation, or because the event was
+   already resolved, are settled; a withdrawal that came too late is a plain note.
+4. **Callbacks say how overdue they are** and when their next 10:00 to 11:00 calling hour is, in their time and Israel time.
+5. **No false "calendar late" alarm** outside the calendar check's real schedule.
+6. **Preview builds** read the live workbook but cannot save; production builds cannot reach that code.
 
-Prepared, **not installed**: OR-05 capture 1.10 (`n8n/or05-capture-1.5/`), which records those conversation emails
-automatically so they never become to-dos. See its `INSTALL.md`.
+## OR-05 capture 1.10.1 (prepared)
+
+A hand-sent email to a person with their own reply, phone conversation or active meeting, with no later ending or pause, is marked
+`conversation_sent` / `resolved` on Mail_Events and leaves the review list. It writes no Activity, Queue or Suppression row, so it
+cannot release a meaningful hold or make any email eligible: the gate already stops every unsent email to such a person,
+permanently. Evidence and install steps: `n8n/or05-capture-1.10.1/INSTALL.md`.
 
 ## Build and test
 
@@ -58,9 +69,9 @@ tools/test.sh <workbook.xlsx> [published.html] # everything below, in order
 
 `tools/test.sh` runs: the three builds; a check that the baseline rebuild equals the published page byte for byte; the leak check
 on every public file; a sanitized fixture of five accounts (`tools/make_fixture.py`, pseudonyms only, written to `private/`); the
-r12 acceptance checks on that fixture (`tools/steps/r12-fixture.mjs`, which fail on the published Desk and pass on r12); the
-preview check (no save reaches Google Drive); and a phone-width check (no sideways scrolling at 390 px).
-`node n8n/or05-capture-1.5/test.mjs` runs the 14 offline checks of the capture change.
+r12 acceptance and edge checks on that fixture (`tools/steps/r12-fixture.mjs`, `r12-edge.mjs`: mixed groups, a failed save, a lost
+answer, a reload, a later cancellation, the unmatched event); the preview check (no save reaches Google Drive); and a phone-width check (no sideways scrolling at 390 px).
+`node n8n/or05-capture-1.10.1/test.mjs` runs the offline checks of the capture change (also step 7 of `tools/test.sh`).
 
 `tools/harness.mjs` opens a build in headless Chromium with the claude.ai runtime replaced by a stub: the workbook comes from a
 local file and every save is captured in memory. Nothing leaves the machine.
