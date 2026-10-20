@@ -28,6 +28,9 @@ page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack || ''
 // Block every network request except the page itself and fonts (fonts are optional; blocking keeps runs offline-safe).
 await page.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
 await page.exposeFunction('__harnessB64', () => b64);
+// Failure injection for save tests: HARNESS_FAIL=n fails the n-th create_file before anything is written; HARNESS_FAIL_AFTER=n
+// writes the n-th one and then fails (the answer is lost, so the page cannot know the file exists).
+await page.exposeFunction('__harnessFail', () => ({ before: Number(process.env.HARNESS_FAIL || 0), after: Number(process.env.HARNESS_FAIL_AFTER || 0) }));
 await page.addInitScript(() => {
   const writes = []; window.__harnessWrites = writes;
   const docs = new Map();
@@ -46,7 +49,10 @@ await page.addInitScript(() => {
     invalidate: async () => { if (watcher) setTimeout(() => deliver(watcher), 30); },
     callTool: async (server, tool, input) => {
       if (tool === 'download_file_content') { const content = await window.__harnessB64(); return { content: [{ type: 'text', text: JSON.stringify({ content }) }] }; }
-      if (tool === 'create_file') { writes.push({ server, tool, input, at: new Date().toISOString() }); const id = 'harness_' + writes.length; return { content: [{ type: 'text', text: JSON.stringify({ id, title: input.title, parents: [input.parentId] }) }], payload: { id, parents: [input.parentId] } }; }
+      if (tool === 'create_file') { const F = await window.__harnessFail(); window.__harnessCalls = (window.__harnessCalls || 0) + 1; const n = window.__harnessCalls;
+        if (n === F.before) throw Object.assign(new Error('harness: injected failure before the write'), { code: 'upstream_error' });
+        writes.push({ server, tool, input, at: new Date().toISOString(), call: n });
+        if (n === F.after) throw Object.assign(new Error('harness: injected failure after the write'), { code: 'upstream_error' }); const id = 'harness_' + writes.length; return { content: [{ type: 'text', text: JSON.stringify({ id, title: input.title, parents: [input.parentId] }) }], payload: { id, parents: [input.parentId] } }; }
       throw Object.assign(new Error('harness: tool not stubbed ' + tool), { code: 'not_in_manifest' });
     },
   };

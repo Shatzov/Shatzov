@@ -21,6 +21,10 @@ let html = page.replace(/^@@PRIVATE (p[0-9a-f]{10})@@$/gm, (m, k) => {
   return priv[k] ?? (missing.push(k), m);
 });
 if (missing.length) { console.error('build: no value for markers', missing.join(', ')); process.exit(1); }
+if (mode === 'production') {   // the preview interception can never be reached from a production build
+  const before = html; html = html.replace('st.mcp = BUILD.preview ? previewMcp(mcp) : mcp;', 'st.mcp = mcp;');
+  if (html === before) { console.error('build: the connector line was not found; refusing to build production'); process.exit(1); }
+}
 if (mode === 'preview') {
   html = html.replace(/^const BUILD = \{/m, 'const BUILD = {"preview": true, ');
   html = html.replace('<title>Blocks Partner Desk</title>', '<title>Partner Desk r12 Preview</title>');

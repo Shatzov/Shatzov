@@ -12,6 +12,18 @@ const fs=require('fs');const p=JSON.parse(fs.readFileSync('private/desk-private.
 echo "2. leak check (public files)"; python3 -I tools/leakcheck.py "$W" desk/src/page.html desk/src/public-defaults.json dist/desk-synthetic.html tools/*.mjs tools/steps/*.mjs tools/*.py $(ls n8n/*/*.js n8n/*/*.md n8n/*/*.mjs 2>/dev/null) tools/*.sh README.md
 echo "3. sanitized fixture"; python3 -I tools/make_fixture.py "$W" private/fixture.xlsx $(cat private/fixture-accounts.txt) >/dev/null; python3 -I tools/leakcheck.py "$W" private/fixture.xlsx
 echo "4. r12 acceptance on the fixture"; node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/fx" --now 2026-10-20T20:40:00Z --script tools/steps/r12-fixture.mjs
+echo "4b. r12 edge cases"; python3 -I - <<'PY'
+import pandas as pd, warnings; warnings.filterwarnings('ignore')
+x = pd.read_excel('private/fixture.xlsx', sheet_name=None, dtype=str); m = x['Meetings'].fillna('')
+i = m.index[m['company_key'] == 'firm01.example']; m.loc[i, 'outcome_branch'] = 'cancelled'; m.loc[i, 'updated_at'] = '2026-10-20T19:00:00.000Z'; x['Meetings'] = m
+with pd.ExcelWriter('private/fixture-ended.xlsx') as w:
+    for t, d in x.items(): d.to_excel(w, sheet_name=t, index=False)
+PY
+for mode in mixed fail lost reload orphan; do
+  ENV=""; [ $mode = fail ] && ENV="HARNESS_FAIL=3"; [ $mode = lost ] && ENV="HARNESS_FAIL_AFTER=2"
+  env MODE=$mode $ENV node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/edge-$mode" --now 2026-10-20T20:40:00Z --script tools/steps/r12-edge.mjs | grep -v "harness done"
+done
+MODE=ended node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture-ended.xlsx --out "$OUT/edge-ended" --now 2026-10-20T20:40:00Z --script tools/steps/r12-edge.mjs | grep -v "harness done"
 echo "5. preview never writes"; node tools/harness.mjs --html dist/desk-preview.html --xlsx private/fixture.xlsx --out "$OUT/pv" --now 2026-10-20T20:40:00Z --script tools/steps/preview.mjs
 echo "6. phone width"; OUT_DIR="$OUT/vis" node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/vis" --width 390 --now 2026-10-20T20:40:00Z --script tools/steps/visual.mjs
 echo "all checks passed ($OUT)"

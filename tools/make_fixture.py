@@ -17,7 +17,8 @@ random.seed(7)
 KEEP_ALL = {'Config', 'Health_Checks', 'Calendar_Slots'}
 DROP = {'Readme', 'Companies_bak_17Sep', 'Rejected', 'Seed Firms', 'Search Queries', 'Discovery_Failures', 'Discovery_Runs', 'Screen_Audit', 'Apollo_Log', 'Aircall_Events_TEST'}
 
-def belongs(row):
+def belongs(row, tab=''):
+    if tab == 'Mail_Events' and not str(row.get('company_key', '')).strip(): return True   # events matched to no firm (pseudonymized below)
     for c in ('company_key', 'domain', 'contact_key', 'key', 'map_key', 'row_key'):
         v = str(row.get(c, '')).lower()
         if v and (v in keys or any(v.startswith(k + ' |') or v.startswith(k + '|') for k in keys)): return True
@@ -28,7 +29,7 @@ for t, d in X.items():
     if t in DROP: continue
     if t in KEEP_ALL: T[t] = d.copy(); continue
     head = d.iloc[:1] if len(d) and str(d.iloc[0, 0]) == 'TEMPLATE' else d.iloc[:0]
-    T[t] = pd.concat([head, d[d.apply(belongs, axis=1)]])
+    T[t] = pd.concat([head, d[d.apply(lambda r: belongs(r, t), axis=1)]])
 
 # pseudonyms
 C, Co = X['Contacts'], X['Companies']
