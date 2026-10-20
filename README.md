@@ -82,5 +82,5 @@ Deployment republishes the existing Desk artifact. It changes what you see, not 
    tools) unchanged.
 4. Open the Desk, press Refresh, and check that Today shows the grouped mailbox rows and the callback ages.
 
-**Rollback:** republish the baseline build (`git checkout cef911f -- desk/src && node tools/build.mjs --mode production`), or restore
+**Rollback:** republish the baseline build (`git checkout "$(git rev-list --max-parents=0 HEAD)" -- desk/src && node tools/build.mjs --mode production`), or restore
 the previous version from the artifact's history. Entries saved with r12 are ordinary desk log entries and need no undoing.
