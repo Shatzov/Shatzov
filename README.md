@@ -33,7 +33,9 @@ Partner Desk (claude.ai page) ── reads the workbook as an .xlsx export throu
 - **OR-05 capture 1.10.1: installed** 21 Oct 2026 07:33 UTC as OR-05 version `ba47da75` (Capture code read back byte-identical
   to the verified private file; nothing else in the workflow changed). OR-11 `expected_versions` updated for OR-05 only and
   published as OR-11 version `560fcc3d`. Rollback: restore OR-05 version `2c66357b` and OR-11 version `8978701b`, publish both
-  (see `n8n/or05-capture-1.10.1/INSTALL.md`). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
+  (see `n8n/or05-capture-1.10.1/INSTALL.md`, which also records the runs since). Runs on it succeed and OR-11 shows no OR-05
+  difference; the new rule itself has **not run on a real message yet** (pending the first hand-sent email to someone in
+  conversation). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
 
 ## What changed in the Desk (r12)
 

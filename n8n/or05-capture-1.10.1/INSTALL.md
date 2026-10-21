@@ -67,8 +67,40 @@ cancelled meeting at the firm).
 - No new Activity row with `logged_by capture` and `action mail_review`. Queue unchanged by the capture.
 - OR-11: `capture_effects` ok, `versions` without a new difference.
 
+## Deployment record (21 Oct 2026, all times UTC)
+
+| When | What |
+|---|---|
+| 07:25:18 | A draft made by pasting the **public** `after.js` (placeholders, no guard yet) is saved as version `736d215c`. |
+| after 07:27:22 | `736d215c` becomes the published version (at 07:27:22 the published version was still `2c66357b`). |
+| 07:30:35 | OR-05 run `39223` on `736d215c`: `new_ids 0, bodies_read 0, applied 0, review 0`. |
+| 07:33:58 | The verified private code is saved as version `ba47da75` (Capture read back byte-identical, sha256 `1b993e2a…`, 152,546 characters; no other node, connection or setting changed). |
+| 07:34:35 | `ba47da75` published. Exposure of `736d215c`: at most 07:27:22 to 07:34:35, one scheduled run. |
+| 07:45:34 | OR-05 run `39252` on `ba47da75`: `new_ids 1, unrelated_counted_only 1, bodies_read 0, applied 0, review 0`. |
+| 07:46 | OR-11 version `560fcc3d` published: `expected_versions` changed for OR-05 only (read back equal to the prepared value). |
+| 08:00:36 | OR-05 run `39261`: `new_ids 0`, nothing read or written. |
+| 08:01:05 | OR-11 run `39263`: versions `14/14 read, 2 differences`, the two that were already there (OR-06 `efbf11d8` vs `854ca69a`, OR-07 `23e91790` vs `cafcf6d4`); no OR-05 difference. capture `ok`, failures `0`, capture_effects unchanged (`partial`, the check that does not cover out-of-office holds yet). |
+
+No data effect from `736d215c`: run `39223` reported no new message, and its counters are all 0. The newest Mail_Events row is
+still from 03:30:38 (run `39101`), and the newest Activity row from 03:30:38 (OR-03). The capture wrote no Suppression row
+(the one row added on 21 Oct is a manual account hold whose source is Itamar's instruction, not the capture).
+OR-05 keeps no successful runs, so this rests on the run reports in Config and on the tabs themselves.
+
+**The new rule has not run on a real message yet.** No hand-sent email to a tracked person has arrived since the install, so
+`conversation_sent` has not been written live. Verification of it stays open until one arrives. Then check: one Mail_Events row
+`conversation_sent` / `resolved` / `resolved_by "mailbox capture 1.10.1 (conversation email)"` for a person with their own reply,
+call or meeting and no later ending; no Activity, Queue or Suppression row from it; anything else classified as under 1.9.
+
+Which code to install: only the private `OR-05.Capture.1.10.1.js.txt` in the private backups. `after.js` and `before.js` here are
+sanitized review copies; since 21 Oct they throw on their first line if run.
+
 ## Rollback
 
-Restore OR-05 version `2c66357b` (published 2026-10-15 13:25 UTC) from the workflow history and publish it, and restore OR-11
-version `8978701b` and publish it (that puts the previous `expected_versions` back). Rows 1.10.1 already marked resolved stay resolved: they record the same thing a Desk resolution
+First read the OR-05 and OR-11 version history. If either has a newer version than `ba47da75` / `560fcc3d` (someone else's
+change), do not restore a whole old version over it: set only the Capture node's code back to the private 1.9 file
+(`OR-05.Capture.1.9-live.js.txt`, sha256 `36774f32…`) and only OR-11's `expected_versions` back to the copy saved in the private
+backups (`OR-11.before-8978701b.json`), read both back, then publish. If neither changed, restoring OR-05 `2c66357b` and
+OR-11 `8978701b` and publishing both does the same.
+
+Data: rows 1.10.1 already marked resolved stay resolved after a code rollback; they record the same thing a Desk resolution
 would (minus an Activity row). To bring one back as a review item, set its Mail_Events `status` to `review` by hand.
