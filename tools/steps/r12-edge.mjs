@@ -5,7 +5,7 @@
 //            (the importer records an event id once), so no message gets two different entries
 //   reload   after the group save, a reload offers no second save for the same messages
 //   ended    a fixture whose meeting was later cancelled: the row does not call the account a meeting or a conversation
-//   orphan   the event matched to nobody has a row; it opens the mailbox form with that event chosen
+//   orphan   the event matched to nobody has a row with its details and the r13 controls; nothing is saved by opening it
 import assert from 'node:assert/strict';
 const MODE = process.env.MODE || 'mixed';
 const groupBtn = (page, n) => page.locator('li.r12mg', { hasText: n + ' mailbox events' }).locator('[data-testid="wl-mailgrp-conv-all"]');
@@ -54,7 +54,7 @@ export default async function (page, ctx) {
     const known = await page.evaluate((i) => (window.__deskState.tabs.Mail_Events || []).find((m) => m.message_id === i), id);
     assert.ok(known && /^review$/i.test(known.status) && !known.company_key, 'it is an open event with no firm');
     await row.locator('summary').click(); const txt = await row.innerText();
-    assert.match(txt, /cannot resolve an event that belongs to no firm/); assert.ok(txt.includes(id), 'the message id is shown');
+    assert.match(txt, /Associate/); assert.match(txt, /Mark it irrelevant/); assert.ok(txt.includes(id), 'the message id is shown');   // r13: the row resolves it
     assert.equal((await saves(ctx)).length, 0, 'nothing is saved');
     console.log('edge orphan: ok', JSON.stringify({ id, classification: known.classification }));
   }

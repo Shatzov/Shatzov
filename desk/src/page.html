@@ -1101,7 +1101,7 @@ aside.r11p .glance{grid-template-columns:minmax(120px,auto) 1fr}
 /* r12: a person's mailbox events as one task */
 .r12mg .r12mgh{cursor:default;box-sizing:border-box}.r12mg .r12mgh:hover{background:none}
 .r12mg .r12acts{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:0 16px 8px}.r12mg .r12acts .src{flex-basis:100%}
-.r12mg details.r12mgd,.r12orph details.r12mgd{padding:0 16px 10px}.r12orph .r12mgh{cursor:default;box-sizing:border-box}.r12orph .r12mgh:hover{background:none}.r12orphd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:14px;margin:4px 0}.r12orphd dt{color:var(--muted)}.r12orphd dd{margin:0;overflow-wrap:anywhere}.r12mg details.r12mgd>summary{cursor:pointer;color:var(--accent);font-size:14px;min-height:36px;display:flex;align-items:center}
+.r12mg details.r12mgd,.r12orph details.r12mgd{padding:0 16px 10px}.r12orph .r12mgh{cursor:default;box-sizing:border-box}.r12orph .r13{padding:0 16px 12px}.r13f{display:grid;gap:8px;margin:8px 0;max-width:640px}.r13f label{display:grid;gap:3px;font-size:14px}.r13f label.chk{display:flex;gap:8px;align-items:center}.r13f select,.r13f input:not([type=checkbox]){min-height:36px;max-width:100%;box-sizing:border-box}.r12orph .r12mgh:hover{background:none}.r12orphd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:14px;margin:4px 0}.r12orphd dt{color:var(--muted)}.r12orphd dd{margin:0;overflow-wrap:anywhere}.r12mg details.r12mgd>summary{cursor:pointer;color:var(--accent);font-size:14px;min-height:36px;display:flex;align-items:center}
 .r12mg details.r12mgd .tl{border:1px solid var(--line);border-radius:8px;overflow:hidden}.r12mg details.r12mgd .tl .trw:first-child .trow{border-top:0}
 @media (max-width:760px){.r12mg .r12acts,.r12mg details.r12mgd{padding-inline:12px}.r12mg .r12acts button{width:100%;min-height:44px}}
 details.tg[data-sec^="r11"]>summary .hs{font-weight:400}
@@ -8185,7 +8185,7 @@ const PEND_KEY = 'blocks_desk_pending_v1:' + (LOGCFG ? LOGCFG.inbox : 'none');
 function loadPend() { try { const v = JSON.parse(localStorage.getItem(PEND_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
 function savePend(list) { try { localStorage.setItem(PEND_KEY, JSON.stringify(list.slice(-60))); } catch (e) { /* per-viewer convenience only */ } }
 let PEND = loadPend();
-const UI_LABEL = { prep_request: 'Request preparation', prep_exclude: 'Exclude from the proposals', call_authorize: 'Call authorization', call_attempt_authorize: 'Manual call attempt', phone_correct: 'Number correction', backup_parallel: 'Backup in parallel', call_not_working: 'Called: number not working' };   // 2.0: the importer's labels still say "next 5"; the page names them as they work now
+const UI_LABEL = { mail_event_resolve: 'Mailbox event with no matched firm', prep_request: 'Request preparation', prep_exclude: 'Exclude from the proposals', call_authorize: 'Call authorization', call_attempt_authorize: 'Manual call attempt', phone_correct: 'Number correction', backup_parallel: 'Backup in parallel', call_not_working: 'Called: number not working' };   // 2.0: the importer's labels still say "next 5"; the page names them as they work now
 const actLabel = (a) => UI_LABEL[a] || (LG.ACTIONS[a] || {}).label || a;
 function firmName(k) { const f = st.model && st.model.firms.find(x => x.key === k); return f ? f.firm : k; }
 function entryLine(p) { return actLabel(p.action) + ', ' + firmName(p.company_key) + (p.contact_key ? ', ' + (p.contact_key.split(' | ')[1] || p.contact_key) : ''); }
@@ -8668,7 +8668,7 @@ function openSettings() {
   const body = `<section class="blk sig"><h3>Signature (every automatic email carries it)</h3>${S.signatureText ? `<pre data-testid="settings-signature">${esc(S.signatureText)}</pre>${S.signatureHtml ? `<iframe sandbox="" title="HTML signature" data-testid="settings-signature-html" style="width:100%;height:240px;border:1px solid var(--line);border-radius:6px;background:#fff" srcdoc="${esc('<!doctype html><meta charset=utf-8><body style=margin:12px;background:#fff>' + S.signatureHtml + '</body>')}"></iframe>` : ''}<div class="src">${S.signatureFinal ? 'Finalized: hash ' + esc(S.signatureHash) + ' is the approved one.' : '<span class="overdue">Draft: not finalized (hash ' + esc(S.signatureHash) + '). The sender does not send until it is.</span>'}</div>` : '<p class="muted">No signature text yet. Write it as a draft, review it, then finalize.</p>'}
       <div class="rsb"><button class="ghost" data-act="signature_draft" data-key="${esc(LG.NO_COMPANY)}" data-testid="settings-sig-draft">${S.signatureText ? 'Edit the draft' : 'Write the signature draft'}</button>${S.signatureText && !S.signatureFinal ? `<button class="log" data-act="signature_approve" data-key="${esc(LG.NO_COMPANY)}" data-testid="settings-sig-final">Finalize this text</button>` : ''}</div></section>
     <section class="blk"><h3>Sender and mailbox</h3><p>Sending mode <b>${esc(S.mode)}</b>${S.paused ? ' · <span class="overdue">global pause on</span>' : ''} · ${S.approvedKeys.length} authorized job${S.approvedKeys.length === 1 ? '' : 's'} · up to ${esc(S.maxBatch)} per run${S.mode === 'test' ? ' · test address ' + esc(S.testRecipient || '(none)') : ''}.</p>
-      <p>Mailbox capture: ${esc(C.why)}${C.last_ok ? ' (last completed ' + esc(when(C.last_ok)) + ')' : ''}${C.last_error ? ' · <span class="overdue">' + esc(C.last_error) + '</span>' : ''}. ${m.mailbox.reviews.length ? '<span class="overdue">' + m.mailbox.reviews.length + ' event' + (m.mailbox.reviews.length === 1 ? '' : 's') + ' to resolve (Needs attention).</span>' : 'No event awaits review.'}</p>
+      <p>Mailbox capture: ${esc(C.why)}${C.last_ok ? ' (last completed ' + esc(when(C.last_ok)) + ')' : ''}${C.last_error ? ' · <span class="overdue">' + esc(C.last_error) + '</span>' : ''}. ${m.mailbox.reviews.length ? '<span class="overdue">' + m.mailbox.reviews.length + ' event' + (m.mailbox.reviews.length === 1 ? '' : 's') + ' to resolve (Needs attention).</span>' : 'No event awaits review.'}</p>${r13ReopenList()}
       ${S.holds.length ? `<p class="overdue">Held: ${esc(S.holds.join('; '))}.</p>` : '<p class="muted">No hold: authorized emails go out at their planned times' + (S.automatic ? '' : ' once sending is activated (send_mode = live)') + '.</p>'}
       ${S.mode !== 'live' ? `<div class="rsb"><button class="log" data-act="config_set" data-key="${esc(LG.NO_COMPANY)}" data-cfg="send_mode" data-cfgval="live" data-testid="settings-activate">Activate real sending (asks for confirmation)</button></div>` : `<div class="rsb"><button class="ghost" data-act="config_set" data-key="${esc(LG.NO_COMPANY)}" data-cfg="paused" data-cfgval="TRUE">Pause all automatic sending</button></div>`}</section>
     <section class="blk" data-testid="settings-decision"><h3>Setup (internal configuration) and the operating decision</h3>
@@ -13349,14 +13349,77 @@ async function r12ConvAll(btn) { if (R12.busy || R11.busy) return; const g = (st
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-r12convall]'); if (b && !b.disabled) { e.preventDefault(); e.stopPropagation(); r12ConvAll(b); return; } }, true);
 // 4. A mailbox event the capture matched to no firm (a bounce for an address nobody tracks, an email from a stranger) was only a count
 //    under Settings. It is now a row of its own in Do now, with the event's details. The mailbox form cannot resolve an event
-//    that belongs to no firm (desk_log mail_review needs a firm, and so does the importer), so the row says so; it stays listed.
+//    that belongs to no firm (desk_log mail_review needs a firm); r13 adds its own controls to the row (see r13Controls).
 const R12_ORPHAN = { bounce: 'A delivery failure', unlinked_inbound: 'An email from someone not tracked', ooo_auto_reply: 'An out-of-office reply', outbound_other: 'An email you sent by hand', manual_sent: 'An email you sent by hand' };
 function r12Orphans(m) { return ((m && m.mailbox && m.mailbox.reviews) || []).filter(r => !r.company_key && r.message_id).map(r => ({ id: 'mailorphan:' + r.message_id, kind: 'mailorphan', key: '', firm: 'No matched person', person: '', message_id: r.message_id, ev: r, due: String(r.date || '').slice(0, 10) })); }
 function r12OrphanRow(x) { const r = x.ev; const what = (R12_ORPHAN[r.classification] || 'A mailbox event') + (r.subject ? ': "' + r.subject.slice(0, 90) + '"' : '');
   const who = String(r.from || r.to || '').replace(/\s+/g, ' ').slice(0, 120); const d = String(r.date || '').slice(0, 10);
   const det = [['From', r.from], ['To', r.to], ['Date', r.date ? when(r.date) : ''], ['Subject', r.subject], ['Why it waits', r.reason], ['Excerpt', r.excerpt]].filter(z => String(z[1] || '').trim());
   return `<li class="trw r12orph" data-testid="wl-mailorphan-${esc(r.message_id)}"><div class="trow r12mgh"><span class="rk">Mailbox</span><span class="rm"><b>No matched person</b><span class="rs">${esc(what)}</span><span class="rh">${esc((who ? who + ' · ' : '') + 'It matches no firm on the Desk')}</span></span><span class="rw">${d ? '<b>' + esc(D.plainDay(d)) + '</b>' : ''}</span>${chipH('attn', 'sq', 'Needs you')}<span class="ra"></span></div>
-    <details class="r12mgd"><summary>Show the event</summary><dl class="kvl r12orphd">${det.map(z => `<dt>${esc(z[0])}</dt><dd>${esc(String(z[1]).slice(0, 600))}</dd>`).join('')}</dl><p class="src">The Desk cannot resolve an event that belongs to no firm yet: the mailbox form needs a firm. Ask Claude to record whom it belongs to, or to ignore it. It stays listed here until then. Message ${esc(r.message_id)}.</p></details></li>`; }
+    <details class="r12mgd"><summary>Show the event</summary><dl class="kvl r12orphd">${det.map(z => `<dt>${esc(z[0])}</dt><dd>${esc(String(z[1]).slice(0, 600))}</dd>`).join('')}</dl><p class="src">Message ${esc(r.message_id)}.</p></details>${r13Controls(r)}</li>`; }
+// r13 (21 Oct 2026). A mailbox event matched to no firm is resolved here, in its own row: "Associate" records the firm (and person) you
+//    confirmed it concerns; "Mark it irrelevant" closes it as ignored. Either one changes only that Mail_Events row (status, the firm and
+//    person, resolved_at/by) and appends an audit note to its reason; the importer node "Mail Event Resolutions" (OR-04) applies it. No
+//    reply, bounce, opt-out, hold, sequence, approval or eligibility is recorded or changed for anyone. The Desk never proposes a firm:
+//    you choose it, or leave the event open. A resolution made this way can be undone under Settings (Mailbox), which puts the event
+//    back for review. Saving again sends exactly the same entry (same event id), and the importer records it once.
+const R13 = { ids: {}, busy: false };
+const R13_MARK = /\[desk (associated|ignored|reopened) [^\]]*\]\s*$/;
+function r13Entry(kind, ev, co, ck, note) {
+  const mid = String(ev.message_id || ''), k = [mid, kind, co, ck, note].join('\u0001');
+  const id = R13.ids[k] || (R13.ids[k] = { event_id: LG.newEventId(), created_at: new Date().toISOString() });
+  return { schema: LG.SCHEMA, event_id: id.event_id, created_at: id.created_at, action: 'mail_event_resolve', resolution: kind,
+    company_key: kind === 'associate' ? co : LG.NO_COMPANY, contact_key: kind === 'associate' ? ck : '', channel: 'email',
+    outcome: kind === 'associate' ? 'associated' : kind === 'ignore' ? 'ignored' : 'reopened', ts: id.created_at, notes: note.slice(0, 300),
+    confirmed: kind === 'associate', mail: { message_id: mid, thread_id: String(ev.thread_id || '') } };
+}
+function r13Firms() { const have = new Set(((st.tabs && st.tabs.Companies) || []).map(c => String(c.company_key || '').trim()).filter(Boolean));
+  return ((st.model && st.model.firms) || []).filter(f => have.has(f.key)).map(f => ({ key: f.key, name: f.firm || f.key })).sort((a, b) => a.name.localeCompare(b.name)); }
+function r13People(co) { return ((st.tabs && st.tabs.Contacts) || []).filter(c => String(c.domain || '').trim() === co && String(c.contact_key || '').trim())
+  .map(c => ({ ck: String(c.contact_key).trim(), name: String(c.full_name || '').trim() || String(c.contact_key).split(' | ')[1] || String(c.contact_key) })); }
+function r13Pending(mid) { const list = PEND.filter(p => p.entry && p.entry.action === 'mail_event_resolve' && p.entry.mail && p.entry.mail.message_id === mid);
+  const last = list[list.length - 1]; return last ? { p: last, s: pendState(last, st.model) } : null; }
+function r13Controls(r) { const mid = String(r.message_id || ''); const pd = r13Pending(mid);
+  if (pd && pd.s.k === 'waiting') return `<div class="r13" data-testid="r13-${esc(mid)}"><p class="src" data-testid="r13-wait">Saved: ${esc(pd.p.entry.resolution === 'associate' ? 'associate with ' + firmName(pd.p.entry.company_key) + (pd.p.entry.contact_key ? ', ' + (pd.p.entry.contact_key.split(' | ')[1] || '') : '') : 'mark it irrelevant')}. The importer applies it within a few minutes; Refresh shows it. ${esc(pd.s.text || '')}</p><div class="rsb"><button class="ghost" data-r13resend="${esc(pd.p.event_id)}">Save again (same entry)</button></div><div class="r13msg"></div></div>`;
+  const prev = pd && pd.s.k === 'rejected' ? `<div class="errs" data-testid="r13-rejected">Not applied: ${esc(pd.s.text)}</div>` : '';
+  const firms = r13Firms();
+  return `<div class="r13" data-testid="r13-${esc(mid)}" data-mid="${esc(mid)}">${prev}
+    <p class="src">Resolve it here only when you know. Associating it records which firm (and person) it concerns, nothing more: no reply, bounce or opt-out is logged for anyone and no hold or sequence changes. The Desk does not guess the firm.</p>
+    <div class="r13f"><label>Firm it concerns <select data-r13="firm" data-testid="r13-firm"><option value="">Choose…</option>${firms.map(f => `<option value="${esc(f.key)}">${esc(f.name)} (${esc(f.key)})</option>`).join('')}</select></label>
+      <label>Person <select data-r13="person" data-testid="r13-person"><option value="">The firm only</option></select></label>
+      <label>How you confirmed it <input data-r13="note" data-testid="r13-note" maxlength="300" placeholder="e.g. the bounced address is in his signature"></label>
+      <label class="chk"><input type="checkbox" data-r13="confirm" data-testid="r13-confirm"> I confirmed this event concerns the firm (and person) chosen</label>
+      <div class="rsb"><button class="ghost" data-r13go="associate" data-testid="r13-associate">Associate</button></div></div>
+    <div class="r13f"><label>Why it concerns nobody we track <input data-r13="inote" data-testid="r13-inote" maxlength="300" placeholder="e.g. a bounce for an address we never wrote to"></label>
+      <div class="rsb"><button class="ghost" data-r13go="ignore" data-testid="r13-ignore">Mark it irrelevant</button></div></div>
+    <div class="r13msg"></div></div>`; }
+function r13ReopenList() { const rows = ((st.tabs && st.tabs.Mail_Events) || []).filter(m => /^(resolved|ignored)$/i.test(String(m.status || '')) && /^(associated|ignored)$/.test((String(m.reason || '').match(R13_MARK) || [])[1] || ''))
+    .sort((a, b) => String(b.resolved_at || '').localeCompare(String(a.resolved_at || ''))).slice(0, 20);
+  if (!rows.length) return '';
+  return `<div data-testid="r13-reopen-list"><p class="src">Resolved here without a matched firm (newest first). Reopen one to put it back for review: the firm and person it was given are cleared again.</p><ul class="tight">${rows.map(m => { const last = String(m.reason).match(R13_MARK)[1];
+    return `<li class="r13" data-mid="${esc(m.message_id)}" data-testid="r13-reopen-${esc(m.message_id)}">${esc(last === 'associated' ? 'Associated with ' + firmName(m.company_key) + (m.contact_key ? ', ' + (String(m.contact_key).split(' | ')[1] || '') : '') : 'Marked irrelevant')}: ${esc(String(m.subject || '').slice(0, 80))} (${esc(String(m.date || '').slice(0, 10))}, ${esc(String(m.resolved_at || '').slice(0, 10))})
+      <label>Why reopen <input data-r13="rnote" maxlength="300"></label> <button class="ghost" data-r13go="reopen" data-testid="r13-reopen">Reopen for review</button><div class="r13msg"></div></li>`; }).join('')}</ul></div>`; }
+function r13Event(mid) { return ((st.tabs && st.tabs.Mail_Events) || []).find(m => String(m.message_id || '') === mid) || ((st.model && st.model.mailbox && st.model.mailbox.reviews) || []).find(m => m.message_id === mid) || null; }
+async function r13Go(btn) { if (R13.busy) return; const box = btn.closest('[data-mid]'); if (!box) return; const mid = box.dataset.mid; const msg = box.querySelector('.r13msg'); const kind = btn.dataset.r13go;
+  const val = (k) => { const el = box.querySelector('[data-r13="' + k + '"]'); return el ? (el.type === 'checkbox' ? el.checked : String(el.value || '').trim()) : ''; };
+  const ev = r13Event(mid); const errs = [];
+  if (!ev) errs.push('the event is no longer in the workbook copy the Desk holds; press Refresh');
+  const co = kind === 'associate' ? val('firm') : '', ck = kind === 'associate' ? val('person') : '';
+  const note = kind === 'associate' ? val('note') : kind === 'ignore' ? val('inote') : val('rnote');
+  if (kind === 'associate') { if (!co) errs.push('choose the firm it concerns'); if (ck && !r13People(co).some(p => p.ck === ck)) errs.push('the person is not at that firm'); if (!val('confirm')) errs.push('tick that you confirmed whom it concerns'); if (note.length < 8) errs.push('say how you confirmed it (a few words)'); }
+  if (kind === 'ignore' && note.length < 8) errs.push('say why it concerns nobody we track (a few words)');
+  if (kind === 'reopen' && note.length < 3) errs.push('say why you reopen it');
+  if (errs.length) { if (msg) msg.innerHTML = `<div class="errs" data-testid="r13-err">Nothing was saved: ${esc(errs.join('; '))}</div>`; return; }
+  const e = r13Entry(kind, ev, co, ck, note.replace(/[\[\]]/g, ''));
+  let ok = false; R13.busy = true; try { ok = await r11Save(e, 'mailorphan:' + mid, { btn, errEl: msg }); if (ok) { logEvent({ kind: 'r13_saved', resolution: kind, message_id: mid }); if (msg) msg.innerHTML = `<p class="src" data-testid="r13-saved">Saved (entry ${esc(e.event_id)}). The importer applies it within a few minutes; Refresh shows it.</p>`; } } finally { R13.busy = false; }
+  if (!ok) return;   // keep the error and the filled form; saving again sends the same entry
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); try { renderLogStatus(st.model); renderToday(st.model); } catch (er) {} }
+async function r13Resend(btn) { if (R13.busy) return; const p = PEND.find(x => x.event_id === btn.dataset.r13resend); if (!p || !p.entry) return; const msg = btn.closest('.r13') && btn.closest('.r13').querySelector('.r13msg');
+  R13.busy = true; try { await r11Save(p.entry, p.item || '', { btn, errEl: msg }); } finally { R13.busy = false; } }
+document.addEventListener('change', (e) => { const sel = e.target.closest('select[data-r13="firm"]'); if (!sel) return; const box = sel.closest('[data-mid]'); const ps = box && box.querySelector('select[data-r13="person"]'); if (!ps) return;
+  ps.innerHTML = '<option value="">The firm only</option>' + (sel.value ? r13People(sel.value).map(p => `<option value="${esc(p.ck)}">${esc(p.name)}</option>`).join('') : ''); }, true);
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-r13go]'); if (b && !b.disabled) { e.preventDefault(); e.stopPropagation(); r13Go(b); return; }
+  const r = e.target.closest('[data-r13resend]'); if (r && !r.disabled) { e.preventDefault(); e.stopPropagation(); r13Resend(r); } }, true);
 // A refusal whose only reason is your own withdrawal of the confirmation it belonged to is settled: nothing of it was applied, as asked.
 const R12_WITHDRAWN = /\bcompany group \S+ was withdrawn\b.*nothing of it was applied/i;
 const R12_LATE_WITHDRAW = /\bcompany group \S+ was already applied; stop or change it with the usual Desk actions/i;

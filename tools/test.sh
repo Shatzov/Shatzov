@@ -24,6 +24,20 @@ for mode in mixed fail lost reload orphan; do
   env MODE=$mode $ENV node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/edge-$mode" --now 2026-10-20T20:40:00Z --script tools/steps/r12-edge.mjs | grep -v "harness done"
 done
 MODE=ended node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture-ended.xlsx --out "$OUT/edge-ended" --now 2026-10-20T20:40:00Z --script tools/steps/r12-edge.mjs | grep -v "harness done"
+echo "4c. r13 unmatched mailbox events"; python3 -I - <<'PY'
+import pandas as pd, warnings; warnings.filterwarnings('ignore')
+x = pd.read_excel('private/fixture.xlsx', sheet_name=None, dtype=str); m = x['Mail_Events'].fillna('')
+i = m.index[m['message_id'] == '1a1455c3a30fdbc3']; m.loc[i, 'status'] = 'ignored'; m.loc[i, 'resolved_at'] = '2026-10-20T10:00:00.000Z'; m.loc[i, 'resolved_by'] = 'Itamar (Desk eabcdefgh123)'
+m.loc[i, 'reason'] = m.loc[i, 'reason'] + ' [desk ignored 2026-10-20T10:00Z by Itamar (Desk eabcdefgh123): test]'; x['Mail_Events'] = m
+d = x['Desk_Import'].fillna(''); d.loc[len(d)] = {'event_id': 'erejectr13test1', 'file_id': 'f', 'file_name': 'desk-log_erejectr13test1.json', 'imported_at': '2026-10-20T20:35:00.000Z', 'company_key': 'firm02.example', 'contact_key': '', 'action': 'mail_event_resolve', 'status': 'rejected', 'reason': 'say how you confirmed whom it concerns (a few words; it stays with the event)', 'writes': '', 'activity_id': ''}; x['Desk_Import'] = d
+with pd.ExcelWriter('private/fixture-r13.xlsx') as w:
+    for t, v in x.items(): v.to_excel(w, sheet_name=t, index=False)
+PY
+for mode in form ignore fail lost reload rejected reopen; do
+  ENV=""; [ $mode = fail ] && ENV="HARNESS_FAIL=1"; [ $mode = lost ] && ENV="HARNESS_FAIL_AFTER=1"; FX=private/fixture.xlsx; [ $mode = rejected -o $mode = reopen ] && FX=private/fixture-r13.xlsx
+  env MODE=$mode $ENV node tools/harness.mjs --html dist/desk-production.html --xlsx $FX --out "$OUT/r13-$mode" --now 2026-10-20T20:40:00Z --script tools/steps/r13-mail.mjs | grep -v "harness done"
+done
+echo "4d. mailbox-event importer node"; [ -f private/mailfix/test_mailfix.mjs ] && node private/mailfix/test_mailfix.mjs | tail -1 || echo "   (private importer test not present; skipped)"
 echo "5. preview never writes"; node tools/harness.mjs --html dist/desk-preview.html --xlsx private/fixture.xlsx --out "$OUT/pv" --now 2026-10-20T20:40:00Z --script tools/steps/preview.mjs
 echo "6. phone width"; OUT_DIR="$OUT/vis" node tools/harness.mjs --html dist/desk-production.html --xlsx private/fixture.xlsx --out "$OUT/vis" --width 390 --now 2026-10-20T20:40:00Z --script tools/steps/visual.mjs
 echo "7. OR-05 capture tests"; node n8n/or05-capture-1.10.1/test.mjs | tail -1

@@ -37,6 +37,15 @@ Partner Desk (claude.ai page) ── reads the workbook as an .xlsx export throu
   difference; the new rule itself has **not run on a real message yet** (pending the first hand-sent email to someone in
   conversation). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
 
+- **Maintenance, 21 Oct 2026 (later):**
+  - **Desk r13: deployed** as version `1792604440-4c68`: a mailbox event matched to no firm can be associated with a confirmed
+    firm/person, marked irrelevant, or reopened, with an audit note; OR-04 version `ee3541ca` adds the importer node for it. See
+    `n8n/or04-mail-event-resolutions/README.md`.
+  - **OR-11** version `33028377`: expected versions for OR-06 (`efbf11d8`) and OR-07 (`23e91790`) updated after review (the Oasis
+    domain pair; OR-07 org search installed off). Rollback: restore `560fcc3d`.
+  - **PAD-01 / PAD-19** (Padwa lead engine, private notes only): Apollo credit hold and the real error text; see the private
+    backups.
+
 ## What changed in the Desk (r12)
 
 Found on the live data of 20 Oct 2026; each change has a test.
