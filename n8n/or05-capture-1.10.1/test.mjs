@@ -15,7 +15,7 @@ const OWNER = 'owner@example.com';
 
 // ---------- loading a Code node ----------
 function load(file) {
-  const ctx = vm.createContext({ Buffer, console, TextDecoder, TextEncoder, atob, btoa });
+  const ctx = vm.createContext({ Buffer, console, TextDecoder, TextEncoder, atob, btoa, __BLOCKS_PUBLIC_COPY_OK__: true });   // the public copies refuse to run without this flag
   const body = fs.readFileSync(path.join(dir, file), 'utf8');
   // the node's code is a function body (it ends with a top-level return); n8n provides $ and $execution
   const fn = vm.runInContext('(function ($, $execution, $workflow) {\n' + body + '\n})', ctx, { filename: file });

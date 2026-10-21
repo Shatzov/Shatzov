@@ -49,7 +49,9 @@ cancelled meeting at the firm).
 
 1. Read the live workflow; its Capture code must equal the reviewed 1.9 code (private `OR-05.Capture.before.js`, sha256
    `36774f32…`). If not, stop.
-2. Set the Capture node's code to the private `OR-05.Capture.1101.js` as a draft. Read the draft back: its code must match the file
+2. Set the Capture node's code to the **private** file (`n8n/OR-05.Capture.1.10.1.js.txt` in the private backups: 152,546
+   characters, first line `// BLOCKS schedule engine, version 1.3`, and the word OWNER appears nowhere in it). The `after.js` in this
+   folder is a public review copy with placeholders; since 21 Oct it refuses to run if pasted. Save it as a draft. Read the draft back: its code must match the file
    byte for byte. Only then publish.
 3. Update OR-11's `expected_versions` for this workflow only: the new published version id and module `BlocksCapture 1.10.1`.
 

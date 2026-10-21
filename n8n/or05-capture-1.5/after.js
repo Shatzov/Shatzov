@@ -35,6 +35,7 @@
 //   Sender rule (sendableNow): an email step is sendable only while it is "due" and the clock is inside its effective window;
 //   a step whose window has passed rolls to the next weekday window (it is never sent at an odd hour), and a person gets at
 //   most one email per run because every later email step stays "planned" until the previous one is actually sent.
+if (!globalThis.__BLOCKS_PUBLIC_COPY_OK__) throw new Error('PUBLIC REVIEW COPY of the OR-05 Capture code, with placeholders in place of names and the mailbox domain: do not install it. Paste the private file OR-05.Capture.1.10.1.js.txt from the private backups instead.');
 (function (root) {
   'use strict';
   const s = (v) => String(v == null ? '' : v).trim();
