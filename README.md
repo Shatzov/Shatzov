@@ -25,14 +25,15 @@ Partner Desk (claude.ai page) ── reads the workbook as an .xlsx export throu
 - Approvals, opt-outs, suppressions, do-not-call holds and sending limits live in the workbook and the workflows. Nothing here
   removes or weakens any of them.
 
-## Status (20 Oct 2026)
+## Status (21 Oct 2026)
 
 - **Desk r12: deployed** to the Partner Desk artifact as version `1792536216-4c87` (read back byte-identical to the tested
   build; stored permissions and runtime unchanged). Rollback: republish the original (version `1792337736-d237`, kept in the
   private backups) or restore it from the artifact's history.
-- **OR-05 capture 1.10.1: verified, not installed.** The n8n tools accept the node code only inline; writing the 152 KB code
-  through them was stopped, so it is installed by pasting `OR-05.Capture.1.10.1.js` into the Capture node (see
-  `n8n/or05-capture-1.10.1/INSTALL.md`). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
+- **OR-05 capture 1.10.1: installed** 21 Oct 2026 07:33 UTC as OR-05 version `ba47da75` (Capture code read back byte-identical
+  to the verified private file; nothing else in the workflow changed). OR-11 `expected_versions` updated for OR-05 only and
+  published as OR-11 version `560fcc3d`. Rollback: restore OR-05 version `2c66357b` and OR-11 version `8978701b`, publish both
+  (see `n8n/or05-capture-1.10.1/INSTALL.md`). The 1.10 proposal in `n8n/or05-capture-1.5/` is withdrawn.
 
 ## What changed in the Desk (r12)
 
@@ -48,7 +49,7 @@ Found on the live data of 20 Oct 2026; each change has a test.
 5. **No false "calendar late" alarm** outside the calendar check's real schedule.
 6. **Preview builds** read the live workbook but cannot save; production builds cannot reach that code.
 
-## OR-05 capture 1.10.1 (prepared)
+## OR-05 capture 1.10.1 (installed)
 
 A hand-sent email to a person with their own reply, phone conversation or active meeting, with no later ending or pause, is marked
 `conversation_sent` / `resolved` on Mail_Events and leaves the review list. It writes no Activity, Queue or Suppression row, so it

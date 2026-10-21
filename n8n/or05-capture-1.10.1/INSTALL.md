@@ -5,6 +5,11 @@ Workflow **BLOCKS-OR-05 v2 | Capture Mailbox** (n8n id `0dbM37DbT0GTUgDT`). One 
 against the gate, the sender and the Desk showed it could move backup timing, change follow-up threading and count a deferral as a
 conversation.
 
+**Status: installed 21 Oct 2026.** OR-05 version `ba47da75-1af9-48e6-9dc5-78aaf0b50fb6` (published 07:33 UTC; previous
+`2c66357b`). OR-11 version `560fcc3d-0b17-47b7-93d6-8bf8515ae0e0` expects it (previous `8978701b`). A draft made from the public
+placeholder copy (`736d215c`) was briefly the published version before `ba47da75`; the one scheduled run on it (07:30 UTC)
+read no message bodies and wrote nothing, so it had no data effect.
+
 ## What it does
 
 A hand-sent email to a tracked person that matches no sequence step today becomes a Mail_Events row `manual_sent` (or
@@ -64,6 +69,6 @@ cancelled meeting at the firm).
 
 ## Rollback
 
-Restore the previous OR-05 version (published 2026-10-15 13:25 UTC) from the workflow history and publish it, and put the previous
-`expected_versions` back in OR-11. Rows 1.10.1 already marked resolved stay resolved: they record the same thing a Desk resolution
+Restore OR-05 version `2c66357b` (published 2026-10-15 13:25 UTC) from the workflow history and publish it, and restore OR-11
+version `8978701b` and publish it (that puts the previous `expected_versions` back). Rows 1.10.1 already marked resolved stay resolved: they record the same thing a Desk resolution
 would (minus an Activity row). To bring one back as a review item, set its Mail_Events `status` to `review` by hand.
